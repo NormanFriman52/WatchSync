@@ -19,7 +19,7 @@ public class Transmiter {
             System.out.println("Connecting to: " + host);
             Connection conn = new Connection(host, port);
             conn.sendObject(td);
-            conn.sendFile(td.getPath());
+            if (!td.getEvent_type().equals("ENTRY_DELETE") && td.getType().equals("file")) conn.sendFile(td.getPath());
             conn.stop();
         }
     }

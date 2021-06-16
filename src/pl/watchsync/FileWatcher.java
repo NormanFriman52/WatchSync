@@ -43,31 +43,32 @@ public class FileWatcher extends Thread{
         if(!shared.isTo_update()){
             //shared.setPath(name);
             //shared.setTo_update(true);
-            File file = new File(full_path);
+            if (event.equals("ENTRY_DELETE")) {
 
-            boolean exists =      file.exists();      // Check if the file exists
-            boolean isDirectory = file.isDirectory(); // Check if it's a directory
-            boolean isFile =      file.isFile();      // Check if it's a regular file
-            try {
-                tdata.setEvent_type(event);
-                if (isDirectory) tdata.setType("dir");
-                if (isFile) tdata.setType("file");
-                tdata.setPath(full_path);
-                tdata.setFilename(name);
+                File file = new File(full_path);
+                boolean exists = file.exists();      // Check if the file exists
+                boolean isDirectory = file.isDirectory(); // Check if it's a directory
+                boolean isFile = file.isFile();      // Check if it's a regular file
+                try {
+                    tdata.setEvent_type(event);
+                    if (isDirectory) tdata.setType("dir");
+                    if (isFile) tdata.setType("file");
+                    tdata.setPath(full_path);
+                    tdata.setFilename(name);
 
-                try{
-                    tdata.setSum(MD5Checksum.getMD5Checksum(full_path));
-                }
-                catch (Exception e){
+                    try {
+                        tdata.setSum(MD5Checksum.getMD5Checksum(full_path));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    System.out.println("file sum: " + tdata.getSum());
+                    transmiter.sendObject(tdata);
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
-                System.out.println("file sum: " + tdata.getSum());
-                transmiter.sendObject(tdata);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
 
-            System.out.println(shared.isTo_update());
+                System.out.println(shared.isTo_update());
+            }
         }
     }
 

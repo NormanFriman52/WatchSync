@@ -158,27 +158,22 @@ class echo extends Thread {
                     fos.close();
                     //bis.close();
                     System.out.println("File downloaded ... ");
-                    try{
+                    try {
                         String sum = MD5Checksum.getMD5Checksum("./temp/" + td.getFilename());
 //                        out.write(sum);
 //                        out.flush();
 //                        out.write("end");
 //                        out.flush();
-                        if(td.getSum().equals(sum)){
+                        if (td.getSum().equals(sum)) {
                             System.out.println("sum ok");
                         }
-                    }
-                    catch (Exception e){
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
-            }
-            else if(td.getEvent_type().equals("ENTRY_DELETE")){
-//                if(!FileManager.toDelete(td.getFilename())){
-//
-//                    Files.delete(td.getPath());
-//
-//                }
+            } else if (td.getEvent_type().equals("ENTRY_DELETE") && td.getType().equals("file")) {
+                FileManager fm = new FileManager(td);
+                fm.deleteFile(td.getPath(), td.getFilename());
             }
 
             sock.close();
