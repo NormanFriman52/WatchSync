@@ -30,11 +30,13 @@ public class Main {
 
         FileWatcher Fw = new FileWatcher(prop.getProperty("dir"), sh, snd, td);
 
+        FileManager fl = new FileManager(td);
+
         Fw.start();
 
         String ip_range = prop.getProperty("hosts_allowed");
 
-        MultiServer Ms = new MultiServer(port, sh, ip_range);
+        MultiServer Ms = new MultiServer(port, sh, ip_range, fl);
 
         Ms.start();
 

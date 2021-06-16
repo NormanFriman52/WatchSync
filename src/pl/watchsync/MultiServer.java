@@ -11,11 +11,13 @@ public class MultiServer extends Thread {
     private ServerSocket server;
     private String mask;
     private String range_ip;
+    private FileManager fl;
 
-    public MultiServer(int port, Shared sh, String ip) throws UnknownHostException {
+    public MultiServer(int port, Shared sh, String ip, FileManager filemanager) throws UnknownHostException {
         String[] result = ip.split("/");
         this.mask = result[1];
         this.range_ip = result[0];
+        this.fl = filemanager;
 
         this.port = port;
         try {
@@ -110,12 +112,12 @@ class echo extends Thread {
             BufferedInputStream bis = new BufferedInputStream(sock.getInputStream());
             BufferedOutputStream bos = new BufferedOutputStream(sock.getOutputStream());
 
-            System.out.println(ois.toString());
             //while ((s = in.readLine()) != null) {
             //out.write(s);
             //out.newLine();
             //out.flush();
             TransmiterData td = (TransmiterData) ois.readObject();
+
 //                if (shared.isTo_update()){
 //                    out.write(shared.getPath().toString());
 //                }
@@ -131,31 +133,53 @@ class echo extends Thread {
                 //out.write(shared.getPath().toString());
             }
             //out.write("received message: " + in.readLine());
-            out.flush();
+            //out.flush();
 
             //if (s.equals("exit"))
             // break;
             //if (s.equals("die!"))	// a way to kill the server
             //System.exit(0);
             //}
-            if (td.getType() == "file") {
-                File directory = new File("./temp/");
-                if (!directory.exists()) {
-                    directory.mkdir();
-                    // If you require it to make the entire directory path including parents,
-                    // use directory.mkdirs(); here instead.
-                }
 
-                FileOutputStream fos = new FileOutputStream("./temp/" + td.getFilename());
-                byte[] buffer = new byte[1024];
-                int count;
-                while ((count = bis.read(buffer)) > 0) {
-                    fos.write(buffer, 0, count);
+            if (td.getEvent_type().equals("ENTRY_CREATE") || td.getEvent_type().equals("ENTRY_MODIFY")) {
+                System.out.println("Event gut, crejejt or modifaj");
+                if (td.getType().equals("file")) {
+                    File directory = new File("./temp/");
+                    if (!directory.exists()) {
+                        directory.mkdir();
+                    }
+
+                    FileOutputStream fos = new FileOutputStream("./temp/" + td.getFilename());
+                    byte[] buffer = new byte[1024];
+                    int count;
+                    while ((count = bis.read(buffer)) > 0) {
+                        fos.write(buffer, 0, count);
+                    }
+                    fos.close();
+                    //bis.close();
+                    System.out.println("File downloaded ... ");
+                    try{
+                        String sum = MD5Checksum.getMD5Checksum("./temp/" + td.getFilename());
+//                        out.write(sum);
+//                        out.flush();
+//                        out.write("end");
+//                        out.flush();
+                        if(td.getSum().equals(sum)){
+                            System.out.println("sum ok");
+                        }
+                    }
+                    catch (Exception e){
+                        e.printStackTrace();
+                    }
                 }
-                System.out.println("File downloaded ... ");
-                fos.close();
             }
-
+            else if(td.getEvent_type().equals("ENTRY_DELETE")){
+//                if(!FileManager.toDelete(td.getFilename())){
+//
+//                    Files.delete(td.getPath());
+//
+//                }
+            }
 
             sock.close();
         } catch (OptionalDataException e) {

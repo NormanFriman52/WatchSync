@@ -80,10 +80,28 @@ class Connection {
             int readLength = -1;
             while ((readLength = connectionBif.read(bytearray)) > 0) {
                 connectionBos.write(bytearray, 0, readLength);
-
             }
             connectionBif.close();
+            fis.close();
             connectionBos.close();
+
+//            String msg;
+//            String sum = "";
+//            System.out.println("Waiting for msg ");
+//            while (true) {
+//                System.out.println("Waiting...");
+//                if (connectionIn != null) {
+//                    msg = connectionIn.readLine();
+//                    if (msg.equals("end")) {
+//                        break;
+//                    }
+//                    if (!msg.equals("")) {
+//                        sum = msg;
+//                    }
+//                }
+//            }
+//            System.out.println("Transmiter recieved sum" + sum);
+
         }
         catch(Exception ex ){
 

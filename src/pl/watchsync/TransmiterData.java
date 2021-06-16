@@ -7,8 +7,11 @@ public class TransmiterData implements Serializable {
     private String filename;
     private String event_type;
     private String type;
+    private String sum;
+//    private String oldSum;
 
-    TransmiterData() {}
+    TransmiterData() {
+    }
 
     public String getPath() {
         return path;
@@ -40,5 +43,14 @@ public class TransmiterData implements Serializable {
 
     public void setType(String type) {
         this.type = type;
+
+    }
+
+    public String getSum() {
+        return sum;
+    }
+
+    public void setSum(String sum) {
+        this.sum = sum;
     }
 }

@@ -3,7 +3,12 @@ package pl.watchsync;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.*;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 import static java.nio.file.StandardWatchEventKinds.*;
 
@@ -49,10 +54,19 @@ public class FileWatcher extends Thread{
                 if (isFile) tdata.setType("file");
                 tdata.setPath(full_path);
                 tdata.setFilename(name);
+
+                try{
+                    tdata.setSum(MD5Checksum.getMD5Checksum(full_path));
+                }
+                catch (Exception e){
+                    e.printStackTrace();
+                }
+                System.out.println("file sum: " + tdata.getSum());
                 transmiter.sendObject(tdata);
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
             System.out.println(shared.isTo_update());
         }
     }
