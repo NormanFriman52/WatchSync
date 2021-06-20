@@ -43,7 +43,7 @@ public class FileWatcher extends Thread{
         if(!shared.isTo_update()){
             //shared.setPath(name);
             //shared.setTo_update(true);
-            if (event.equals("ENTRY_DELETE")) {
+            if (!event.equals("ENTRY_DELETE")) {
 
                 File file = new File(full_path);
                 boolean exists = file.exists();      // Check if the file exists
@@ -62,6 +62,18 @@ public class FileWatcher extends Thread{
                         e.printStackTrace();
                     }
                     System.out.println("file sum: " + tdata.getSum());
+                    transmiter.sendObject(tdata);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                System.out.println(shared.isTo_update());
+            }
+            if (event.equals("ENTRY_DELETE")) {
+                try {
+                    tdata.setFilename(name);
+                    tdata.setEvent_type(event);
+                    tdata.setPath(full_path);
                     transmiter.sendObject(tdata);
                 } catch (IOException e) {
                     e.printStackTrace();

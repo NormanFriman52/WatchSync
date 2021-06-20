@@ -19,7 +19,7 @@ public class Transmiter {
             System.out.println("Connecting to: " + host);
             Connection conn = new Connection(host, port);
             conn.sendObject(td);
-            if (!td.getEvent_type().equals("ENTRY_DELETE") && td.getType().equals("file")) conn.sendFile(td.getPath());
+            if (!td.getEvent_type().equals("ENTRY_DELETE")) conn.sendFile(td.getPath());
             conn.stop();
         }
     }
@@ -27,7 +27,6 @@ public class Transmiter {
 
 class Connection {
     private Socket connectionSocket;
-    //private PrintWriter connectionOut;
     private BufferedWriter connectionOut;
     private BufferedReader connectionIn;
     private ObjectOutputStream oos;
@@ -58,6 +57,7 @@ class Connection {
         String resp = null;
         oos.writeObject(tdata);
         oos.flush();
+
 //        connectionOut.write(td.getFilename());
 //        connectionOut.newLine();
 //        connectionOut.flush();

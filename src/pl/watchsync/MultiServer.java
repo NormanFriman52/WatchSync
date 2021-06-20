@@ -124,14 +124,7 @@ class echo extends Thread {
             System.err.println(sock.getInetAddress());
             //System.err.println(in.readLine());
             System.err.println(td.getEvent_type());
-            System.err.println(td.getPath());
-            System.err.println(td.getFilename());
-            if (!shared.isTo_update()) {
-                shared.setTo_update(true);
-                shared.setPath(Paths.get(td.getPath()));
-                System.out.println(shared.isTo_update());
-                //out.write(shared.getPath().toString());
-            }
+
             //out.write("received message: " + in.readLine());
             //out.flush();
 
@@ -142,6 +135,14 @@ class echo extends Thread {
             //}
 
             if (td.getEvent_type().equals("ENTRY_CREATE") || td.getEvent_type().equals("ENTRY_MODIFY")) {
+                System.err.println(td.getPath());
+                System.err.println(td.getFilename());
+                if (!shared.isTo_update()) {
+                    shared.setTo_update(true);
+                    shared.setPath(Paths.get(td.getPath()));
+                    System.out.println(shared.isTo_update());
+                    //out.write(shared.getPath().toString());
+                }
                 System.out.println("Event gut, crejejt or modifaj");
                 if (td.getType().equals("file")) {
                     File directory = new File("./temp/");
@@ -171,7 +172,7 @@ class echo extends Thread {
                         e.printStackTrace();
                     }
                 }
-            } else if (td.getEvent_type().equals("ENTRY_DELETE") && td.getType().equals("file")) {
+            } else if (td.getEvent_type().equals("ENTRY_DELETE")) {
                 FileManager fm = new FileManager(td);
                 fm.deleteFile(td.getPath(), td.getFilename());
             }
