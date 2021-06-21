@@ -3,12 +3,9 @@ package pl.watchsync;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.*;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 
 import static java.nio.file.StandardWatchEventKinds.*;
 
@@ -16,10 +13,10 @@ import static java.nio.file.StandardWatchEventKinds.*;
 public class FileWatcher extends Thread{
     private WatchService watcher;
     private Path dir;
-    private Shared shared;
+    private List<Shared> shared;
     private Transmiter transmiter;
     private TransmiterData tdata;
-    FileWatcher(String path, Shared sh, Transmiter snd, TransmiterData td){
+    FileWatcher(String path, ArrayList<Shared> sh, Transmiter snd, TransmiterData td){
 
         try {
             shared = sh;
@@ -40,7 +37,7 @@ public class FileWatcher extends Thread{
 
     public void triggered_action(String event, String name, String full_path){
         System.out.println("event: " + event +  " of file " + name + " of path: " + full_path);
-        if(!shared.isTo_update()){
+        //if(!shared.isTo_update()){
             //shared.setPath(name);
             //shared.setTo_update(true);
             if (!event.equals("ENTRY_DELETE")) {
@@ -49,39 +46,29 @@ public class FileWatcher extends Thread{
                 boolean exists = file.exists();      // Check if the file exists
                 boolean isDirectory = file.isDirectory(); // Check if it's a directory
                 boolean isFile = file.isFile();      // Check if it's a regular file
-                try {
-                    tdata.setEvent_type(event);
-                    if (isDirectory) tdata.setType("dir");
-                    if (isFile) tdata.setType("file");
-                    tdata.setPath(full_path);
-                    tdata.setFilename(name);
+                tdata.setEvent_type(event);
+                if (isDirectory) tdata.setType("dir");
+                if (isFile) tdata.setType("file");
+                tdata.setPath(full_path);
+                tdata.setFilename(name);
 
-                    try {
-                        tdata.setSum(MD5Checksum.getMD5Checksum(full_path));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    System.out.println("file sum: " + tdata.getSum());
-                    transmiter.sendObject(tdata);
-                } catch (IOException e) {
+                try {
+                    tdata.setSum(MD5Checksum.getMD5Checksum(full_path));
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
+                System.out.println("file sum: " + tdata.getSum());
+                transmiter.warpObject(tdata);
 
-                System.out.println(shared.isTo_update());
+                //System.out.println(shared.isTo_update());
             }
             if (event.equals("ENTRY_DELETE")) {
-                try {
-                    tdata.setFilename(name);
-                    tdata.setEvent_type(event);
-                    tdata.setPath(full_path);
-                    transmiter.sendObject(tdata);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                System.out.println(shared.isTo_update());
+                tdata.setFilename(name);
+                tdata.setEvent_type(event);
+                tdata.setPath(full_path);
+                transmiter.warpObject(tdata);
             }
-        }
+        //}
     }
 
     @Override
@@ -94,7 +81,7 @@ public class FileWatcher extends Thread{
             try {
                 key = watcher.take();
             } catch (InterruptedException x) {
-                System.out.println("Error in 38" + x);
+                System.out.println(x);
                 return;
             }
 

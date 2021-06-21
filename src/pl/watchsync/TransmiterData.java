@@ -8,6 +8,15 @@ public class TransmiterData implements Serializable {
     private String event_type;
     private String type;
     private String sum;
+    private String tempPath;
+
+    public String getTempPath() {
+        return tempPath;
+    }
+
+    public void setTempPath(String tempPath) {
+        this.tempPath = tempPath;
+    }
 //    private String oldSum;
 
     TransmiterData() {

@@ -2,18 +2,18 @@ package pl.watchsync;
 
 import java.net.*;
 import java.io.*;
-import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MultiServer extends Thread {
     private int port;
-    private Shared shared;
+    private List<Shared> shared;;
     private ServerSocket server;
     private String mask;
     private String range_ip;
     private FileManager fl;
 
-    public MultiServer(int port, Shared sh, String ip, FileManager filemanager) throws UnknownHostException {
+    public MultiServer(int port, ArrayList<Shared> sh, String ip, FileManager filemanager) throws UnknownHostException {
         String[] result = ip.split("/");
         this.mask = result[1];
         this.range_ip = result[0];
@@ -66,7 +66,7 @@ public class MultiServer extends Thread {
                 e.printStackTrace();
             }
             System.err.println("multiserver " + sock);
-            new echo(sock, shared);
+            new echo(sock, (ArrayList<Shared>) shared, this.fl);
         }
     }
 
@@ -95,12 +95,14 @@ public class MultiServer extends Thread {
 
 class echo extends Thread {
     Socket sock;
-    Shared shared;
+    private List<Shared> shared;
     TransmiterData td = new TransmiterData();
+    private FileManager fm;
 
-    echo(Socket sock, Shared sh) {
+    echo(Socket sock, ArrayList<Shared>  sh, FileManager fm) {
         this.sock = sock;
         this.shared = sh;
+        this.fm = fm;
         start();
     }
 
@@ -112,77 +114,59 @@ class echo extends Thread {
             BufferedInputStream bis = new BufferedInputStream(sock.getInputStream());
             BufferedOutputStream bos = new BufferedOutputStream(sock.getOutputStream());
 
-            //while ((s = in.readLine()) != null) {
-            //out.write(s);
-            //out.newLine();
-            //out.flush();
-            TransmiterData td = (TransmiterData) ois.readObject();
+            //while (!in.readLine().equals("end")) {
+                System.err.println("incoming connection from: " + sock.getInetAddress());
+                TransmiterData td = (TransmiterData) ois.readObject();
 
-//                if (shared.isTo_update()){
-//                    out.write(shared.getPath().toString());
-//                }
-            System.err.println(sock.getInetAddress());
-            //System.err.println(in.readLine());
-            System.err.println(td.getEvent_type());
+                System.err.println("event " + td.getEvent_type());
 
-            //out.write("received message: " + in.readLine());
-            //out.flush();
-
-            //if (s.equals("exit"))
-            // break;
-            //if (s.equals("die!"))	// a way to kill the server
-            //System.exit(0);
-            //}
-
-            if (td.getEvent_type().equals("ENTRY_CREATE") || td.getEvent_type().equals("ENTRY_MODIFY")) {
-                System.err.println(td.getPath());
-                System.err.println(td.getFilename());
-                if (!shared.isTo_update()) {
-                    shared.setTo_update(true);
-                    shared.setPath(Paths.get(td.getPath()));
-                    System.out.println(shared.isTo_update());
-                    //out.write(shared.getPath().toString());
-                }
-                System.out.println("Event gut, crejejt or modifaj");
-                if (td.getType().equals("file")) {
-                    File directory = new File("./temp/");
-                    if (!directory.exists()) {
-                        directory.mkdir();
-                    }
-
-                    FileOutputStream fos = new FileOutputStream("./temp/" + td.getFilename());
-                    byte[] buffer = new byte[1024];
-                    int count;
-                    while ((count = bis.read(buffer)) > 0) {
-                        fos.write(buffer, 0, count);
-                    }
-                    fos.close();
-                    //bis.close();
-                    System.out.println("File downloaded ... ");
-                    try {
-                        String sum = MD5Checksum.getMD5Checksum("./temp/" + td.getFilename());
-//                        out.write(sum);
-//                        out.flush();
-//                        out.write("end");
-//                        out.flush();
-                        if (td.getSum().equals(sum)) {
-                            System.out.println("sum ok");
+                if (td.getEvent_type().equals("ENTRY_CREATE") || td.getEvent_type().equals("ENTRY_MODIFY")) {
+                    System.err.println(td.getPath());
+                    System.err.println(td.getFilename());
+                    if (td.getType().equals("file")) {
+                        File directory = new File("./temp/");
+                        if (!directory.exists()) {
+                            directory.mkdir();
                         }
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                        try{
+
+
+                        FileOutputStream fos = new FileOutputStream("./temp/" + td.getFilename());
+                        byte[] buffer = new byte[1024];
+                        int count;
+                        while ((count = bis.read(buffer)) > 0) {
+                            fos.write(buffer, 0, count);
+                        }
+                        fos.close();
+                        //bis.close();
+                        }
+                        catch (Exception e){
+                            System.out.println("Exception reading buffer " + e);
+                        }
+                        System.out.println("File downloaded ... ");
+                        try {
+                            String sum = MD5Checksum.getMD5Checksum("./temp/" + td.getFilename());
+                            if (td.getSum().equals(sum)) {
+                                System.out.println("sum ok");
+                            }
+                            td.setTempPath("./temp/" + td.getFilename());
+                            fm.addObject(td);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
-            } else if (td.getEvent_type().equals("ENTRY_DELETE")) {
-                FileManager fm = new FileManager(td);
-                fm.deleteFile(td.getPath(), td.getFilename());
-            }
-
+                else if (td.getEvent_type().equals("ENTRY_DELETE")) {
+                    fm.addObject(td);
+                }
+            //}
             sock.close();
         } catch (OptionalDataException e) {
             e.printStackTrace();
         } catch (IOException | ClassNotFoundException e) {
             System.err.println("Receiver exception " + e);
+            e.printStackTrace();
         }
     }
 
-}
+    }

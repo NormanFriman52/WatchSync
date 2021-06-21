@@ -6,9 +6,15 @@ public class FileManager {
 
     private String oldSum;
     private TransmiterData td;
+    private boolean allow_delete;
 
-    FileManager(TransmiterData tdata) {
+    FileManager(TransmiterData tdata, Boolean allow_delete) {
+        this.allow_delete = allow_delete;
         td = tdata;
+    }
+
+    public void addTempPath(String path){
+        this.td.setPath(path);
     }
 
     public void ControlSum() {
@@ -16,6 +22,10 @@ public class FileManager {
     }
 
     public void CreateNewFile() {
+
+    }
+
+    public void addObject(TransmiterData td){
 
     }
 

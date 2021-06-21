@@ -3,24 +3,77 @@ package pl.watchsync;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
-public class Transmiter {
-    private List<String> hosts;
-    private int port;
-    Transmiter(List<String> h, int port){
+public class Transmiter extends Thread{
+    private final List<String> hosts;
+    private final int port;
+    private final List<TransmiterData> tdl = new ArrayList<>();
+    private final int syncdelay;
+    Transmiter(List<String> h, int port, int syncdelay){
         this.hosts = h;
         this.port = port;
+        this.syncdelay = syncdelay;
+        start();
 
     }
-    void sendObject(TransmiterData td) throws IOException {
+    void warpObject(TransmiterData td){
+        try{
+            int flag = 0;
+            if(!td.getEvent_type().equals("ENTRY_DELETE")){
+                for (TransmiterData tdata: tdl){
+                    if(tdata.getSum().equals(td.getSum())){
+                        flag = 1;
+                        break;
+                    }
+                }
+            }
+            if (flag == 0) tdl.add(td);
+        }
+        catch (Exception e){
+            System.out.println("problem with adding item " + e);
+        }
+
+    }
+
+    void sendObject(List<TransmiterData> tdl) throws IOException {
         for (String host: hosts) {
             System.out.println("Connecting to: " + host);
-            Connection conn = new Connection(host, port);
-            conn.sendObject(td);
-            if (!td.getEvent_type().equals("ENTRY_DELETE")) conn.sendFile(td.getPath());
-            conn.stop();
+
+            for (TransmiterData item : tdl) {
+                Connection conn = new Connection(host, port);
+                conn.sendObject(item);
+                if (!item.getEvent_type().equals("ENTRY_DELETE")) conn.sendFile(item.getPath());
+                conn.stop();
+            }
+        }
+    }
+
+    @Override
+    public void run(){
+        super.run();
+        Instant start = Instant.now();
+        Instant end = Instant.now();
+        Duration timeElapsed;
+
+        while(true){
+            timeElapsed = Duration.between(start, end);
+            if(timeElapsed.toSeconds() > this.syncdelay + 5){
+                start =  Instant.now();
+                System.out.println("time " + timeElapsed.toMinutes());
+                if(!tdl.isEmpty()){
+                    try {
+                        sendObject(tdl);
+                        tdl.clear();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            end =  Instant.now();
         }
     }
 }
@@ -30,7 +83,6 @@ class Connection {
     private BufferedWriter connectionOut;
     private BufferedReader connectionIn;
     private ObjectOutputStream oos;
-    private BufferedInputStream connectionBif;
     private BufferedOutputStream connectionBos;
 
 
@@ -38,26 +90,24 @@ class Connection {
         try {
             InetAddress address = InetAddress.getByName(host);
             connectionSocket = new Socket(host, port);
-            //connectionOut = new PrintWriter(connectionSocket.getOutputStream(), true);
             oos = new ObjectOutputStream(connectionSocket.getOutputStream());
             connectionOut = new BufferedWriter(new OutputStreamWriter(connectionSocket.getOutputStream()));
             connectionIn = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
-            //connectionBif = new BufferedInputStream(connectionSocket.getInputStream());
             connectionBos = new BufferedOutputStream(connectionSocket.getOutputStream());
-
-            //BufferedReader connectionIn  = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
-            //BufferedWriter connectionOut = new BufferedWriter(new OutputStreamWriter(connectionSocket.getOutputStream()));
 
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    public void sendObject(TransmiterData tdata) throws IOException {
-        System.out.println("sending message: " + tdata.getFilename());
-        String resp = null;
-        oos.writeObject(tdata);
-        oos.flush();
-
+    public void sendObject(TransmiterData tdata){
+        try{
+            System.out.println("sending message: " + tdata.getFilename());
+            oos.writeObject(tdata);
+            oos.flush();
+        }
+        catch (Exception e){
+            System.out.println("sendObject " + e);
+        }
 //        connectionOut.write(td.getFilename());
 //        connectionOut.newLine();
 //        connectionOut.flush();
@@ -70,37 +120,20 @@ class Connection {
 
     public void sendFile(String filepath){
         byte[] bytearray = new byte[1024];
-        FileInputStream fis = null;
+        FileInputStream fis;
         try {
 
             fis = new FileInputStream(filepath);
-//            OutputStream output= socket.getOututStream();
-             connectionBif = new BufferedInputStream(fis);
+            BufferedInputStream connectionBif = new BufferedInputStream(fis);
 
-            int readLength = -1;
+            int readLength;
             while ((readLength = connectionBif.read(bytearray)) > 0) {
                 connectionBos.write(bytearray, 0, readLength);
             }
             connectionBif.close();
             fis.close();
-            connectionBos.close();
+            connectionBos.flush();
 
-//            String msg;
-//            String sum = "";
-//            System.out.println("Waiting for msg ");
-//            while (true) {
-//                System.out.println("Waiting...");
-//                if (connectionIn != null) {
-//                    msg = connectionIn.readLine();
-//                    if (msg.equals("end")) {
-//                        break;
-//                    }
-//                    if (!msg.equals("")) {
-//                        sum = msg;
-//                    }
-//                }
-//            }
-//            System.out.println("Transmiter recieved sum" + sum);
 
         }
         catch(Exception ex ){
@@ -112,9 +145,12 @@ class Connection {
     public void stop(){
         try{
             System.out.println("Zamykanie połączenia");
+            connectionOut.write("end");
+            connectionOut.flush();
             connectionOut.close();
             connectionIn.close();
             connectionSocket.close();
+            connectionBos.close();
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println("Błąd podczas zamykania połączenia");
