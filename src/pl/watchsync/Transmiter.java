@@ -8,6 +8,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+
+//this thread class manages all outbound connections
+//check if list is not empty then transfers files and object to defined hosts
 public class Transmiter extends Thread{
     private final List<String> hosts;
     private final int port;
@@ -63,7 +66,6 @@ public class Transmiter extends Thread{
             timeElapsed = Duration.between(start, end);
             if(timeElapsed.toSeconds() > this.syncdelay + 5){
                 start =  Instant.now();
-                System.out.println("time " + timeElapsed.toMinutes());
                 if(!tdl.isEmpty()){
                     try {
                         sendObject(tdl);

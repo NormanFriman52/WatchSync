@@ -3,6 +3,10 @@ package pl.watchsync;
 import java.io.*;
 import java.security.MessageDigest;
 
+
+//this class is responsible for checksum check
+//it's necessary for file version control
+
 public class MD5Checksum {
 
     public static byte[] createChecksum(String filename) throws Exception {

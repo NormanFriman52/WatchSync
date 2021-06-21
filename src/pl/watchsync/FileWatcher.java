@@ -4,22 +4,19 @@ package pl.watchsync;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.List;
 
 import static java.nio.file.StandardWatchEventKinds.*;
 
-
+// this is core class
+// class waits for events then wraps all information about file events and transfers that data to Transmiter class
 public class FileWatcher extends Thread{
     private WatchService watcher;
     private Path dir;
-    private List<Shared> shared;
     private Transmiter transmiter;
     private TransmiterData tdata;
-    FileWatcher(String path, ArrayList<Shared> sh, Transmiter snd, TransmiterData td){
+    FileWatcher(String path,  Transmiter snd, TransmiterData td){
 
         try {
-            shared = sh;
             transmiter = snd;
             tdata = td;
             watcher = FileSystems.getDefault().newWatchService();
@@ -37,9 +34,6 @@ public class FileWatcher extends Thread{
 
     public void triggered_action(String event, String name, String full_path){
         System.out.println("event: " + event +  " of file " + name + " of path: " + full_path);
-        //if(!shared.isTo_update()){
-            //shared.setPath(name);
-            //shared.setTo_update(true);
             if (!event.equals("ENTRY_DELETE")) {
 
                 File file = new File(full_path);

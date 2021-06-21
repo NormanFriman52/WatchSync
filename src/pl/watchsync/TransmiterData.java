@@ -2,6 +2,9 @@ package pl.watchsync;
 
 import java.io.Serializable;
 
+
+//this is shared class
+//defines all transferred file data and allows and contains event types
 public class TransmiterData implements Serializable {
     private String path;
     private String filename;

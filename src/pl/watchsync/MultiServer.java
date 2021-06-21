@@ -2,27 +2,23 @@ package pl.watchsync;
 
 import java.net.*;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
 
+
+//this class manages incoming connections connects through socket reads incoming objects and download files to temp
 public class MultiServer extends Thread {
-    private int port;
-    private List<Shared> shared;;
     private ServerSocket server;
-    private String mask;
-    private String range_ip;
-    private FileManager fl;
+    private final String mask;
+    private final String range_ip;
+    private final FileManager fm;
 
-    public MultiServer(int port, ArrayList<Shared> sh, String ip, FileManager filemanager) throws UnknownHostException {
+    public MultiServer(int port, String ip, FileManager filemanager) {
         String[] result = ip.split("/");
         this.mask = result[1];
         this.range_ip = result[0];
-        this.fl = filemanager;
+        this.fm = filemanager;
 
-        this.port = port;
         try {
-            this.shared = sh;
-            server = new ServerSocket(this.port);
+            server = new ServerSocket(port);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -33,12 +29,6 @@ public class MultiServer extends Thread {
     public void run() {
         super.run();
         while (true) {
-//            if(shared.isTo_update())
-//            {
-//                //System.out.println("MultiServer " + shared.getPath());
-//                //shared.setTo_update(false);
-//                //System.out.println("MultiServer " + shared.isTo_update());
-//            }
             Socket sock = null;
             try {
 
@@ -48,11 +38,10 @@ public class MultiServer extends Thread {
                 if (socketAddress instanceof InetSocketAddress) {
                     InetAddress inetAddress = ((InetSocketAddress) socketAddress).getAddress();
                     if (inetAddress instanceof Inet4Address) {
-                        System.out.println("IP check");
-                        System.out.println("IPv4: " + inetAddress);
+                        System.out.println("Inbound From (IPv4): " + inetAddress);
                         System.out.println("My range ip: " + this.range_ip);
-                        System.out.println("Mask: " + this.mask);
-                        boolean test = checkIpInSubnet(this.range_ip, this.mask, inetAddress.toString().substring(1));
+                        //System.out.println("Mask: " + this.mask); // for debugging
+                        boolean test = CheckIpRange.checkIpInSubnet(this.range_ip, this.mask, inetAddress.toString().substring(1));
                         if (!test) {
                             sock.close();
                         }
@@ -66,42 +55,19 @@ public class MultiServer extends Thread {
                 e.printStackTrace();
             }
             System.err.println("multiserver " + sock);
-            new echo(sock, (ArrayList<Shared>) shared, this.fl);
+            new echo(sock, this.fm);
         }
-    }
-
-    public int convertIpToInteger(final String ip) {
-        try {
-            String s = ip;
-            Inet4Address a = (Inet4Address) InetAddress.getByName(s);
-            byte[] b = a.getAddress();
-            int i = ((b[0] & 0xFF) << 24) | ((b[1] & 0xFF) << 16) | ((b[2] & 0xFF) << 8) | ((b[3] & 0xFF) << 0);
-            return i;
-        } catch (final Throwable ignored) {
-            return -1;
-        }
-    }
-
-    public boolean checkIpInSubnet(String ip, String mask, String ipToCheck) {
-        int integerIp = convertIpToInteger(ip);
-        int integerIpToCheck = convertIpToInteger(ipToCheck);
-        int bits = Integer.parseInt(mask);
-        int byte_mask = -1 << (32 - bits);
-
-        return (integerIp & byte_mask) == (integerIpToCheck & byte_mask);
     }
 }
 
-
+//MultiServer listener on designed port
 class echo extends Thread {
     Socket sock;
-    private List<Shared> shared;
     TransmiterData td = new TransmiterData();
-    private FileManager fm;
+    private final FileManager fm;
 
-    echo(Socket sock, ArrayList<Shared>  sh, FileManager fm) {
+    echo(Socket sock, FileManager fm) {
         this.sock = sock;
-        this.shared = sh;
         this.fm = fm;
         start();
     }
@@ -116,9 +82,7 @@ class echo extends Thread {
 
             //while (!in.readLine().equals("end")) {
                 System.err.println("incoming connection from: " + sock.getInetAddress());
-                TransmiterData td = (TransmiterData) ois.readObject();
-
-                System.err.println("event " + td.getEvent_type());
+                td = (TransmiterData) ois.readObject();
 
                 if (td.getEvent_type().equals("ENTRY_CREATE") || td.getEvent_type().equals("ENTRY_MODIFY")) {
                     System.err.println(td.getPath());
